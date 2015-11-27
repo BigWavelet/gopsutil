@@ -10,10 +10,21 @@ func init() {
 }
 
 func CPUPercent(interval time.Duration, percpu bool) ([]float64, error) {
-	getAllBusy := func(t CPUTimesStat) (float64, float64) {
-		busy := t.User + t.System + t.Nice + t.Iowait + t.Irq +
-			t.Softirq + t.Steal + t.Guest + t.GuestNice + t.Stolen
-		return busy + t.Idle, busy
+	getAllBusy := func(t CPUTimesStat) (uint64, uint64) {
+		// Fields existing on kernels >= 2.6
+		// (and RHEL's patched kernel 2.4...)
+		// Guest time is already accounted in usertime
+		user := t.User - t.Guest
+		nice := t.Nice - t.GuestNice
+
+		systemAll := t.System + t.Iowait + t.Irq + t.Softirq
+		idleAll := t.Idle + t.Iowait
+		virtAll := t.Guest + t.GuestNice
+
+		total := user + nice + systemAll + idleAll + t.Steal + virtAll
+		//busy := t.User + t.Nice + t.System + t.Iowait + t.Irq +
+		//	t.Softirq + t.Steal + t.Guest + t.GuestNice + t.Stolen
+		return total, total - idleAll //busy + t.Idle, busy
 	}
 
 	calculate := func(t1, t2 CPUTimesStat) float64 {
@@ -26,7 +37,7 @@ func CPUPercent(interval time.Duration, percpu bool) ([]float64, error) {
 		if t2All <= t1All {
 			return 1
 		}
-		return (t2Busy - t1Busy) / (t2All - t1All) * 100
+		return float64((t2Busy-t1Busy)*100) / float64((t2All - t1All))
 	}
 
 	cpuTimes, err := CPUTimes(percpu)

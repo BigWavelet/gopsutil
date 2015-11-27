@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/shirou/gopsutil/internal/common"
+	"github.com/codeskyblue/gopsutil/internal/common"
 )
 
 var cpu_tick = float64(100)
@@ -175,65 +175,68 @@ func parseStatLine(line string) (*CPUTimesStat, error) {
 	if cpu == "cpu" {
 		cpu = "cpu-total"
 	}
-	user, err := strconv.ParseFloat(fields[1], 64)
+	puint := func(s string) (uint64, error) {
+		return strconv.ParseUint(s, 10, 64)
+	}
+	user, err := puint(fields[1])
 	if err != nil {
 		return nil, err
 	}
-	nice, err := strconv.ParseFloat(fields[2], 64)
+	nice, err := puint(fields[2])
 	if err != nil {
 		return nil, err
 	}
-	system, err := strconv.ParseFloat(fields[3], 64)
+	system, err := puint(fields[3])
 	if err != nil {
 		return nil, err
 	}
-	idle, err := strconv.ParseFloat(fields[4], 64)
+	idle, err := puint(fields[4])
 	if err != nil {
 		return nil, err
 	}
-	iowait, err := strconv.ParseFloat(fields[5], 64)
+	iowait, err := puint(fields[5])
 	if err != nil {
 		return nil, err
 	}
-	irq, err := strconv.ParseFloat(fields[6], 64)
+	irq, err := puint(fields[6])
 	if err != nil {
 		return nil, err
 	}
-	softirq, err := strconv.ParseFloat(fields[7], 64)
+	softirq, err := puint(fields[7])
 	if err != nil {
 		return nil, err
 	}
 
 	ct := &CPUTimesStat{
 		CPU:     cpu,
-		User:    float64(user) / cpu_tick,
-		Nice:    float64(nice) / cpu_tick,
-		System:  float64(system) / cpu_tick,
-		Idle:    float64(idle) / cpu_tick,
-		Iowait:  float64(iowait) / cpu_tick,
-		Irq:     float64(irq) / cpu_tick,
-		Softirq: float64(softirq) / cpu_tick,
+		User:    user,    //float64(user) / cpu_tick,
+		Nice:    nice,    //float64(nice) / cpu_tick,
+		System:  system,  //float64(system) / cpu_tick,
+		Idle:    idle,    //float64(idle) / cpu_tick,
+		Iowait:  iowait,  //float64(iowait) / cpu_tick,
+		Irq:     irq,     //float64(irq) / cpu_tick,
+		Softirq: softirq, //float64(softirq) / cpu_tick,
 	}
 	if len(fields) > 8 { // Linux >= 2.6.11
-		steal, err := strconv.ParseFloat(fields[8], 64)
+		steal, err := puint(fields[8])
 		if err != nil {
 			return nil, err
 		}
-		ct.Steal = float64(steal) / cpu_tick
+		ct.Steal = steal //) / cpu_tick
 	}
 	if len(fields) > 9 { // Linux >= 2.6.24
-		guest, err := strconv.ParseFloat(fields[9], 64)
+		guest, err := puint(fields[9])
 		if err != nil {
 			return nil, err
 		}
-		ct.Guest = float64(guest) / cpu_tick
+		ct.Guest = guest //float64(guest) / cpu_tick
 	}
 	if len(fields) > 10 { // Linux >= 3.2.0
-		guestNice, err := strconv.ParseFloat(fields[10], 64)
+		guestNice, err := puint(fields[10])
 		if err != nil {
 			return nil, err
 		}
-		ct.GuestNice = float64(guestNice) / cpu_tick
+		ct.GuestNice = guestNice //float64(guestNice) / cpu_tick
 	}
 
 	return ct, nil
