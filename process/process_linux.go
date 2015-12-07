@@ -12,10 +12,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/host"
-	"github.com/shirou/gopsutil/internal/common"
-	"github.com/shirou/gopsutil/net"
+	"github.com/codeskyblue/gopsutil/cpu"
+	"github.com/codeskyblue/gopsutil/host"
+	"github.com/codeskyblue/gopsutil/internal/common"
+	"github.com/codeskyblue/gopsutil/net"
 )
 
 const (
@@ -596,20 +596,20 @@ func (p *Process) fillFromStat() (string, int32, *cpu.CPUTimesStat, int64, int32
 	if err != nil {
 		return "", 0, nil, 0, 0, err
 	}
-	utime, err := strconv.ParseFloat(fields[13], 64)
+	utime, err := strconv.ParseUint(fields[13], 10, 64)
 	if err != nil {
 		return "", 0, nil, 0, 0, err
 	}
 
-	stime, err := strconv.ParseFloat(fields[14], 64)
+	stime, err := strconv.ParseUint(fields[14], 10, 64)
 	if err != nil {
 		return "", 0, nil, 0, 0, err
 	}
 
 	cpuTimes := &cpu.CPUTimesStat{
 		CPU:    "cpu",
-		User:   float64(utime / ClockTicks),
-		System: float64(stime / ClockTicks),
+		User:   utime, //float64(utime / ClockTicks),
+		System: stime, //float64(stime / ClockTicks),
 	}
 
 	bootTime, _ := host.BootTime()

@@ -2,11 +2,10 @@ package process
 
 import (
 	"encoding/json"
-	"runtime"
 	"time"
 
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/internal/common"
+	"github.com/codeskyblue/gopsutil/cpu"
+	"github.com/codeskyblue/gopsutil/internal/common"
 )
 
 var invoke common.Invoker
@@ -106,13 +105,15 @@ func PidExists(pid int32) (bool, error) {
 // If interval is 0, return difference from last call(non-blocking).
 // If interval > 0, wait interval sec and return diffrence between start and end.
 func (p *Process) CPUPercent(interval time.Duration) (float64, error) {
-	numcpu := runtime.NumCPU()
+	// Need to fix
+	//numcpu := runtime.NumCPU()
+	numcpu := cpu.CPUCount
 	calculate := func(t1, t2 *cpu.CPUTimesStat, delta float64) float64 {
 		if delta == 0 {
 			return 0
 		}
 		delta_proc := (t2.User - t1.User) + (t2.System - t1.System)
-		overall_percent := ((delta_proc / delta) * 100) * float64(numcpu)
+		overall_percent := (float64(delta_proc) * 100 / delta) * float64(numcpu)
 		return overall_percent
 	}
 
@@ -141,8 +142,8 @@ func (p *Process) CPUPercent(interval time.Duration) (float64, error) {
 		}
 	}
 
-	delta := (time.Now().Sub(p.lastCPUTime).Seconds()) * float64(numcpu)
-	ret := calculate(p.lastCPUTimes, cpuTimes, float64(delta))
+	delta := time.Now().Sub(p.lastCPUTime).Seconds() * float64(numcpu)
+	ret := calculate(p.lastCPUTimes, cpuTimes, delta)
 	p.lastCPUTimes = cpuTimes
 	p.lastCPUTime = time.Now()
 	return ret, nil
