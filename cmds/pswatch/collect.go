@@ -106,3 +106,23 @@ func NewProcCollectCPU(proc *process.Process) CollectFunc {
 		}, nil
 	}
 }
+
+func drainAndroidFPS(outC chan *Data) error {
+	sh, pipe, err := drainFPS()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if sh.Process != nil {
+			sh.Process.Kill()
+		}
+	}()
+	for val := range pipe {
+		//log.Println("FPS:", val)
+		outC <- &Data{
+			Name: "fps",
+			Data: val,
+		}
+	}
+	return nil
+}

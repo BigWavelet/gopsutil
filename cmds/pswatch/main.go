@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -25,41 +26,9 @@ type Data struct {
 type CollectFunc func() (*Data, error)
 
 var (
-	outC         chan *Data
+	outC         = make(chan *Data, 5)
 	collectFuncs = []CollectFunc{}
 )
-
-var (
-	search = flag.String("p", "",
-		"search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
-)
-
-func main() {
-	flag.Parse()
-
-	var proc *process.Process
-	if *search != "" {
-		procs, err := FindProcess(*search)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if len(procs) == 0 {
-			log.Fatalf("No process found by %s", strconv.Quote(*search))
-		}
-		if len(procs) > 1 {
-			log.Fatal("Find more then one process matched, This is a bug, maybe")
-		}
-		proc = procs[0]
-		collectFuncs = append(collectFuncs, NewProcCollectCPU(proc))
-	}
-
-	outC = make(chan *Data, 5)
-	drainData()
-	for data := range outC {
-		dataByte, _ := json.Marshal(data)
-		fmt.Println(string(dataByte))
-	}
-}
 
 func drainData() {
 	for _, collect := range collectFuncs {
@@ -84,4 +53,58 @@ func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) 
 		done <- true
 	}()
 	return done
+}
+
+var (
+	search = flag.String("p", "",
+		"search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
+	showInfo = flag.Bool("i", false, "show mathine infomation")
+	showFPS  = flag.Bool("fps", false, "show fps of android")
+)
+
+type DeviceInfo struct {
+	NumCPU int `json:"num_cpu"`
+}
+
+func dumpDeviceInfo() {
+	di := &DeviceInfo{
+		NumCPU: runtime.NumCPU(),
+	}
+	data, _ := json.MarshalIndent(di, "", "    ")
+	fmt.Println(string(data))
+}
+
+func main() {
+	flag.Parse()
+
+	if *showInfo {
+		dumpDeviceInfo()
+		return
+	}
+
+	if *showFPS {
+		go drainAndroidFPS(outC)
+	}
+
+	var proc *process.Process
+	if *search != "" {
+		procs, err := FindProcess(*search)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(procs) == 0 {
+			log.Fatalf("No process found by %s", strconv.Quote(*search))
+		}
+		if len(procs) > 1 {
+			log.Fatal("Find more then one process matched, This is a bug, maybe")
+		}
+		proc = procs[0]
+		collectFuncs = append(collectFuncs, NewProcCollectCPU(proc))
+	}
+
+	drainData()
+	for data := range outC {
+		dataByte, _ := json.Marshal(data)
+		fmt.Println(string(dataByte))
+	}
 }
