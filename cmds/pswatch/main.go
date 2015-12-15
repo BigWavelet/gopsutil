@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"log"
 	"math/rand"
-	"sync"
+	"strconv"
 	"time"
 
-	"github.com/codeskyblue/gopsutil/cpu"
-	"github.com/codeskyblue/gopsutil/mem"
+	"github.com/codeskyblue/gopsutil/process"
 )
 
 func init() {
@@ -16,70 +17,71 @@ func init() {
 }
 
 type Data struct {
-	Time int64       `json:"time"`
+	Time int64       `json:"-"`
 	Name string      `json:"name"`
 	Data interface{} `json:"data"`
 }
 
-var outC chan *Data
+type CollectFunc func() (*Data, error)
 
-func collectCPU() (*Data, error) {
-	v, err := cpu.CPUPercent(0, false)
-	if err != nil {
-		return nil, err
-	}
-	cpu := v[0]
-	return &Data{
-		Time: time.Now().UnixNano() / 1e6,
-		Name: "cpu",
-		Data: cpu,
-	}, nil
-}
+var (
+	outC         chan *Data
+	collectFuncs = []CollectFunc{}
+)
 
-func collectMem() (*Data, error) {
-	v, err := mem.VirtualMemory()
-	return &Data{
-		Time: time.Now().UnixNano() / 1e6,
-		Name: "mem",
-		Data: map[string]uint64{
-			"total": v.Total,
-			"free":  v.Free,
-			"used":  v.Used,
-		},
-	}, err
-}
-
-func collectData() {
-	wg := sync.WaitGroup{}
-	cronCollect := func(collec func() (*Data, error), interval time.Duration) {
-		wg.Add(1)
-		go func() {
-			for {
-				start := time.Now()
-				data, err := collec()
-				if err == nil {
-					outC <- data
-				}
-				spend := time.Since(start)
-				if interval > spend {
-					time.Sleep(interval - spend)
-				}
-			}
-		}()
-	}
-
-	cronCollect(collectCPU, time.Second)
-	cronCollect(collectMem, time.Second)
-	wg.Wait()
-}
+var (
+	search = flag.String("p", "",
+		"search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
+)
 
 func main() {
-	outC = make(chan *Data, 5)
-	go func() {
-		for data := range outC {
-			dataByte, _ := json.Marshal(data)
-			fmt.Println(string(dataByte))
+	flag.Parse()
+
+	var proc *process.Process
+	if *search != "" {
+		procs, err := FindProcess(*search)
+		if err != nil {
+			log.Fatal(err)
 		}
+		if len(procs) == 0 {
+			log.Fatalf("No process found by %s", strconv.Quote(*search))
+		}
+		if len(procs) > 1 {
+			log.Fatal("Find more then one process matched, This is a bug, maybe")
+		}
+		proc = procs[0]
+		collectFuncs = append(collectFuncs, NewProcCollectCPU(proc))
+	}
+
+	outC = make(chan *Data, 5)
+	drainData()
+	for data := range outC {
+		dataByte, _ := json.Marshal(data)
+		fmt.Println(string(dataByte))
+	}
+}
+
+func drainData() {
+	for _, collect := range collectFuncs {
+		goCronCollect(collect, time.Second, outC)
+	}
+}
+
+func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) chan bool {
+	done := make(chan bool, 0)
+	go func() {
+		for {
+			start := time.Now()
+			data, err := collec()
+			if err == nil {
+				outC <- data
+			}
+			spend := time.Since(start)
+			if interval > spend {
+				time.Sleep(interval - spend)
+			}
+		}
+		done <- true
 	}()
-	collectData()
+	return done
 }

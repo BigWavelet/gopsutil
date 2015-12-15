@@ -142,7 +142,7 @@ func (p *Process) CPUPercent(interval time.Duration) (float64, error) {
 		}
 	}
 
-	delta := time.Now().Sub(p.lastCPUTime).Seconds() * float64(numcpu)
+	delta := time.Now().Sub(p.lastCPUTime).Seconds() * float64(numcpu) * ClockTicks
 	ret := calculate(p.lastCPUTimes, cpuTimes, delta)
 	p.lastCPUTimes = cpuTimes
 	p.lastCPUTime = time.Now()

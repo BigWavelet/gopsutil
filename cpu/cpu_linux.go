@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 )
 
 var cpu_tick = float64(100)
-var CPUCount = 1
+var CPUCount = runtime.NumCPU()
 
 func init() {
 	out, err := exec.Command("/usr/bin/getconf", "CLK_TCK").Output()
@@ -33,6 +34,7 @@ func init() {
 	patten := regexp.MustCompile(`processor\s*:\s*\d`)
 	cpuall := patten.FindAll(cpuinfo, -1)
 	CPUCount = len(cpuall)
+	// CPUCount, _ = CPUCounts(true)
 }
 
 func CPUTimes(percpu bool) ([]CPUTimesStat, error) {
