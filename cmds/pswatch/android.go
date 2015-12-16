@@ -2,25 +2,93 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
+
+	"github.com/codeskyblue/gopsutil/cpu"
 )
+
+func atoi(a string) int {
+	var i int
+	_, err := fmt.Sscanf(a, "%d", &i)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return i
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func getprop(key string) (string, error) {
+	c := exec.Command("getprop", key)
+	data, err := c.Output()
+	return strings.TrimSpace(string(data)), err
+}
+
+type DeviceInfo struct {
+	NumCPU  int    `json:"ncpu"`
+	Root    bool   `json:"root"`
+	Sdk     int    `json:"sdk"`
+	Version string `json:"version"`
+}
+
+func DumpAndroidInfo() {
+	sdk, _ := AndroidSdkVersion()
+	ver, _ := getprop("ro.build.version.release")
+	di := &DeviceInfo{
+		NumCPU:  cpu.CPUCount,
+		Root:    IsAndroidRoot(),
+		Sdk:     sdk,
+		Version: ver,
+	}
+	data, _ := json.MarshalIndent(di, "", "    ")
+	fmt.Println(string(data))
+}
+
+// check if root
+func IsAndroidRoot() bool {
+	for _, searchDir := range []string{"/system/bin/", "/system/xbin/", "/system/sbin/", "/sbin/", "/vendor/bin/"} {
+		if fileExists(filepath.Join(searchDir, "su")) {
+			return true
+		}
+	}
+	return false
+}
 
 // android sdk verion
 // http://netease.github.io/airtest/wikipedia/api-version.html
 func AndroidSdkVersion() (ver int, err error) {
-	c := exec.Command("getprop", "ro.build.version.sdk")
-	data, err := c.Output()
+	val, err := getprop("ro.build.version.sdk")
+	fmt.Sscanf(val, "%d", &ver)
+	return
+}
+
+/*
+func AndroidScreenSize() (width int, height int, err error) {
+	out, err := exec.Command("dumpsys", "window").Output()
 	if err != nil {
 		return
 	}
-	fmt.Sscanf(string(data), "%d", &ver)
-	return
+	rsRE := regexp.MustCompile(`\s*mRestrictedScreen=\(\d+,\d+\) (?P<w>\d+)x(?P<h>\d+)`)
+	matches := rsRE.FindStringSubmatch(string(out))
+	if len(matches) == 0 {
+		err = errors.New("get shape(width,height) from device error")
+		return
+	}
+	return atoi(matches[1]), atoi(matches[2]), nil
 }
+*/
 
 var patten = regexp.MustCompile(`\(([a-fA-F0-9]+)\ `)
 

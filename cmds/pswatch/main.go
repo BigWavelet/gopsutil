@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -18,7 +17,7 @@ func init() {
 }
 
 type Data struct {
-	Time int64       `json:"-"`
+	Time int64       `json:"time"`
 	Name string      `json:"name"`
 	Data interface{} `json:"data"`
 }
@@ -62,23 +61,11 @@ var (
 	showFPS  = flag.Bool("fps", false, "show fps of android")
 )
 
-type DeviceInfo struct {
-	NumCPU int `json:"num_cpu"`
-}
-
-func dumpDeviceInfo() {
-	di := &DeviceInfo{
-		NumCPU: runtime.NumCPU(),
-	}
-	data, _ := json.MarshalIndent(di, "", "    ")
-	fmt.Println(string(data))
-}
-
 func main() {
 	flag.Parse()
 
 	if *showInfo {
-		dumpDeviceInfo()
+		DumpAndroidInfo()
 		return
 	}
 
@@ -104,6 +91,7 @@ func main() {
 
 	drainData()
 	for data := range outC {
+		data.Time = time.Now().UnixNano() / 1e6 // milliseconds
 		dataByte, _ := json.Marshal(data)
 		fmt.Println(string(dataByte))
 	}

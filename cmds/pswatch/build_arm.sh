@@ -7,6 +7,7 @@
 #
 
 
+set -e
 GOOS=linux GOARCH=arm go build
 echo "Push ..."
 adb -P ${PORT:-"13020"} push pswatch  /data/local/tmp/ 
