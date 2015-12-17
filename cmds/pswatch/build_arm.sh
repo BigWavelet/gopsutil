@@ -8,6 +8,8 @@
 
 
 set -e
-GOOS=linux GOARCH=arm go build
+#GOOS=linux GOARCH=arm go build
+#GOOS=linux GOARCH=386 go build -o pswatch
+GOOS=linux GOARCH=arm go build -o pswatch
 echo "Push ..."
 adb -P ${PORT:-"13020"} push pswatch  /data/local/tmp/ 
