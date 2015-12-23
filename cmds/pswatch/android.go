@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -71,6 +73,28 @@ func IsAndroidRoot() bool {
 func AndroidSdkVersion() (ver int, err error) {
 	val, err := getprop("ro.build.version.sdk")
 	fmt.Sscanf(val, "%d", &ver)
+	return
+}
+
+func readUint64FromFile(filename string) (uint64, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
+}
+
+// ref
+// traffix for android: http://keepcleargas.bitbucket.org/2013/10/12/android-App-Traffic.html
+// get uid from /proc/<pid>/status http://www.linuxquestions.org/questions/linux-enterprise-47/uid-and-gid-fileds-from-proc-pid-status-595383/
+func ReadTrafix(uid int32) (rcv, snd uint64, err error) {
+	tcpRecv := fmt.Sprintf("/proc/uid_stat/%d/tcp_rcv", uid)
+	tcpSend := fmt.Sprintf("/proc/uid_stat/%d/tcp_snd", uid)
+	rcv, err = readUint64FromFile(tcpRecv)
+	if err != nil {
+		return
+	}
+	snd, err = readUint64FromFile(tcpSend)
 	return
 }
 

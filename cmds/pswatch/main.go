@@ -43,6 +43,8 @@ func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) 
 			data, err := collec()
 			if err == nil {
 				outC <- data
+			} else {
+				log.Println(err)
 			}
 			spend := time.Since(start)
 			if interval > spend {
@@ -86,7 +88,9 @@ func main() {
 			log.Fatal("Find more then one process matched, This is a bug, maybe")
 		}
 		proc = procs[0]
-		collectFuncs = append(collectFuncs, NewProcCollectCPU(proc))
+		collectFuncs = append(collectFuncs,
+			NewProcCollectCPU(proc),
+			NewProcCollectTraffic(proc))
 	}
 
 	drainData()

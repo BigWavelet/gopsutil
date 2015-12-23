@@ -107,6 +107,27 @@ func NewProcCollectCPU(proc *process.Process) CollectFunc {
 	}
 }
 
+func NewProcCollectTraffic(proc *process.Process) CollectFunc {
+	return func() (*Data, error) {
+		uids, err := proc.Uids()
+		if err != nil {
+			return nil, err
+		}
+		uid := uids[0] // there are four, first is real_uid
+		rcv, snd, err := ReadTrafix(uid)
+		if err != nil {
+			return nil, err
+		}
+		return &Data{
+			Name: fmt.Sprintf("proc:%d:traffic", proc.Pid),
+			Data: map[string]interface{}{
+				"recv": rcv,
+				"send": snd,
+			},
+		}, nil
+	}
+}
+
 func drainAndroidFPS(outC chan *Data) error {
 	sh, pipe, err := drainFPS()
 	if err != nil {
