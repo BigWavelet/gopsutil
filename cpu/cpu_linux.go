@@ -18,13 +18,27 @@ var cpu_tick = float64(100)
 var CPUCount = getNumCPU()
 
 func getNumCPU() int {
-	cpuinfo, err := ioutil.ReadFile("/proc/cpuinfo")
+	/*
+		cpuinfo, err := ioutil.ReadFile("/proc/cpuinfo")
+		if err != nil {
+			panic(err)
+		}
+		patten := regexp.MustCompile(`processor\s*:\s*\d`)
+		cpuall := patten.FindAll(cpuinfo, -1)
+		return len(cpuall)
+	*/
+	// Sometimes, /proc/cpuinfo processor count not match /proc/stat
+	stat, err := ioutil.ReadFile("/proc/stat")
 	if err != nil {
 		panic(err)
 	}
-	patten := regexp.MustCompile(`processor\s*:\s*\d`)
-	cpuall := patten.FindAll(cpuinfo, -1)
-	return len(cpuall)
+	patten := regexp.MustCompile(`cpu\d+\s+\d+`) // ex: cpu0 44222
+	cpux := patten.FindAll(stat, -1)
+	//for i, c := range cpux {
+	//log.Println(i, string(c))
+	//}
+	//log.Println(cpux)
+	return len(cpux)
 }
 
 func init() {

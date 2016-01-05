@@ -44,7 +44,10 @@ func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) 
 			if err == nil {
 				outC <- data
 			} else {
-				log.Println(err)
+				outC <- &Data{
+					Name: "error",
+					Data: err.Error(),
+				}
 			}
 			spend := time.Since(start)
 			if interval > spend {

@@ -128,7 +128,6 @@ func drainFPS() (sh *exec.Cmd, pipe chan float64, err error) {
 	}
 	var lastframe = 0
 	var lasttime = time.Now()
-	//println("FPS")
 	stdout := bytes.NewBuffer(nil)
 	//sh := exec.Command("su", "-c", "/system/bin/sh")
 	sh = exec.Command("su")
@@ -164,9 +163,6 @@ func drainFPS() (sh *exec.Cmd, pipe chan float64, err error) {
 				//select {
 				//case pipe <- fpsrate:
 				pipe <- fpsrate
-				//default:
-				//println("FULL")
-				//}
 			}
 			lastframe = curframe
 			lasttime = time.Now()

@@ -15,20 +15,24 @@ func init() {
 }
 
 func collectCPU() (*Data, error) {
-	v, err := cpu.CPUPercent(0, true)
+	//v, err := cpu.CPUPercent(0, true)
+	v, err := cpu.CPUPercent(0, false)
 	if err != nil {
 		return nil, err
 	}
-	var total float64
-	for _, val := range v {
-		total += val
-	}
-	avg := total / float64(len(v))
+	/*
+		var total float64
+		for _, val := range v {
+			total += val
+		}
+		avg := total / float64(len(v))
+	*/
+	avg := v[0]
 	return &Data{
 		Name: "cpu",
 		Data: map[string]interface{}{
-			"count":   len(v),
-			"each":    v,
+			//"count":   len(v),
+			//"each":    v,
 			"average": avg,
 			"summary": fmt.Sprintf("Average CPU Percent: %.2f%%", avg),
 		},

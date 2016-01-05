@@ -14,3 +14,6 @@ GOOS=linux GOARCH=386 go build -o release/x86/pswatch
 
 echo "arm ..."
 GOOS=linux GOARCH=arm go build -o release/armeabi-v7a/pswatch
+
+echo "arm64 ..."
+GOOS=linux GOARCH=arm64 go build -o release/arm64-v8a/pswatch
