@@ -39,6 +39,7 @@ func getprop(key string) (string, error) {
 }
 
 type DeviceInfo struct {
+	Serial  string `json:"serial"`
 	NumCPU  int    `json:"ncpu"`
 	Root    bool   `json:"root"`
 	Sdk     int    `json:"sdk"`
@@ -48,7 +49,9 @@ type DeviceInfo struct {
 func DumpAndroidInfo() {
 	sdk, _ := AndroidSdkVersion()
 	ver, _ := getprop("ro.build.version.release")
+	serial, _ := getprop("ro.serialno")
 	di := &DeviceInfo{
+		Serial:  serial,
 		NumCPU:  cpu.CPUCount,
 		Root:    IsAndroidRoot(),
 		Sdk:     sdk,

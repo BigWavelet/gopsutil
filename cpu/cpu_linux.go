@@ -17,6 +17,11 @@ import (
 var cpu_tick = float64(100)
 var CPUCount = getNumCPU()
 
+// Sometimes cpu sleep, you can't see it in /proc/stat
+// ref: http://stackoverflow.com/questions/19619582/number-of-processors-cores-in-command-line
+// $ ls /sys/devices/system/cpu/
+// cpu0  cpufreq  kernel_max  offline  possible  present  release
+// cpu1  cpuidle  modalias    online   power     probe    uevent
 func getNumCPU() int {
 	/*
 		cpuinfo, err := ioutil.ReadFile("/proc/cpuinfo")
@@ -28,16 +33,20 @@ func getNumCPU() int {
 		return len(cpuall)
 	*/
 	// Sometimes, /proc/cpuinfo processor count not match /proc/stat
+	possible, err := ioutil.ReadFile("/sys/devices/system/cpu/possible")
+	if err == nil {
+		var a, b int
+		if _, er := fmt.Sscanf(string(possible), "%d-%d", &a, &b); er == nil {
+			return b - a + 1
+		}
+	}
+
 	stat, err := ioutil.ReadFile("/proc/stat")
 	if err != nil {
 		panic(err)
 	}
 	patten := regexp.MustCompile(`cpu\d+\s+\d+`) // ex: cpu0 44222
 	cpux := patten.FindAll(stat, -1)
-	//for i, c := range cpux {
-	//log.Println(i, string(c))
-	//}
-	//log.Println(cpux)
 	return len(cpux)
 }
 

@@ -1,5 +1,7 @@
 // +build linux
-// +build arm
+// +build arm arm64
+
+// FIXME(ssx): I added arm64 but not tested
 
 package process
 

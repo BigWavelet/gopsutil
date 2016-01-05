@@ -1,5 +1,7 @@
 // +build linux
-// +build arm
+// +build arm arm64
+
+// FIXME(ssx): not test arm64
 
 package host
 
