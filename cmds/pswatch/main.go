@@ -59,15 +59,25 @@ func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) 
 	return done
 }
 
+const (
+	VERSION = "0.0.1"
+)
+
 var (
 	search = flag.String("p", "",
-		"search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
-	showInfo = flag.Bool("i", false, "show mathine infomation")
-	showFPS  = flag.Bool("fps", false, "show fps of android")
+		"Search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
+	showInfo = flag.Bool("i", false, "Show mathine infomation")
+	showFPS  = flag.Bool("fps", false, "Show fps of android")
+	version  = flag.Bool("v", false, "Show version")
 )
 
 func main() {
 	flag.Parse()
+
+	if *version {
+		fmt.Println(VERSION)
+		return
+	}
 
 	if *showInfo {
 		DumpAndroidInfo()

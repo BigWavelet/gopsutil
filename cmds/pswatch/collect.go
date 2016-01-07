@@ -11,22 +11,14 @@ import (
 
 func init() {
 	collectFuncs = append(collectFuncs,
-		collectCPU, collectMem)
+		collectCPU, collectMem, collectBattery)
 }
 
 func collectCPU() (*Data, error) {
-	//v, err := cpu.CPUPercent(0, true)
 	v, err := cpu.CPUPercent(0, false)
 	if err != nil {
 		return nil, err
 	}
-	/*
-		var total float64
-		for _, val := range v {
-			total += val
-		}
-		avg := total / float64(len(v))
-	*/
 	avg := v[0]
 	return &Data{
 		Name: "cpu",
@@ -51,6 +43,20 @@ func collectMem() (*Data, error) {
 				humanize.IBytes(v.Total), humanize.IBytes(v.Free), humanize.IBytes(v.Used)),
 		},
 	}, err
+}
+
+func collectBattery() (*Data, error) {
+	var bt = Battery{}
+	if err := bt.Update(); err != nil {
+		return nil, err
+	}
+	return &Data{
+		Name: "battery",
+		Data: map[string]interface{}{
+			"temperature": bt.Temperature,
+			"voltage":     bt.Voltage,
+		},
+	}, nil
 }
 
 // search name accept some process

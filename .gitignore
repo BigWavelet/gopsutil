@@ -2,3 +2,5 @@
 #*
 _obj
 *.tmp
+a.out
+release/
