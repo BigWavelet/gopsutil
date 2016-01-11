@@ -53,8 +53,9 @@ func collectBattery() (*Data, error) {
 	return &Data{
 		Name: "battery",
 		Data: map[string]interface{}{
-			"temperature": bt.Temperature,
-			"voltage":     bt.Voltage,
+			"voltage":      bt.Voltage,
+			"temperature":  bt.Temperature,
+			"powerPercent": bt.Level * 100 / bt.Scale,
 		},
 	}, nil
 }
