@@ -1,11 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
+	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -59,8 +63,9 @@ func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) 
 	return done
 }
 
-const (
-	VERSION = "0.0.1"
+var (
+	VERSION    = "0.0.x"
+	BUILD_DATE = "unknown"
 )
 
 var (
@@ -71,11 +76,25 @@ var (
 	version  = flag.Bool("v", false, "Show version")
 )
 
+func showVersion() error {
+	fmt.Printf("version: %v\n", VERSION)
+	fmt.Printf("build: %v\n", BUILD_DATE)
+	fmt.Printf("golang: %v\n", runtime.Version())
+	fd, err := os.Open(os.Args[0])
+	if err != nil {
+		return err
+	}
+	md5h := md5.New()
+	io.Copy(md5h, fd)
+	fmt.Printf("md5sum: %x\n", md5h.Sum([]byte(""))) //md5
+	return nil
+}
+
 func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println(VERSION)
+		showVersion()
 		return
 	}
 

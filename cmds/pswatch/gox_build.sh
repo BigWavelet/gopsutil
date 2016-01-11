@@ -10,10 +10,10 @@
 mkdir -p release/{armeabi-v7a,x86}
 
 echo "x86 ..."
-GOOS=linux GOARCH=386 go build -o release/x86/pswatch
+GOOS=linux GOARCH=386 ./build.sh -o release/x86/pswatch
 
 echo "arm ..."
-GOOS=linux GOARCH=arm go build -o release/armeabi-v7a/pswatch
+GOOS=linux GOARCH=arm ./build.sh -o release/armeabi-v7a/pswatch
 
 echo "arm64 ..."
-GOOS=linux GOARCH=arm64 go build -o release/arm64-v8a/pswatch
+GOOS=linux GOARCH=arm64 ./build.sh -o release/arm64-v8a/pswatch
