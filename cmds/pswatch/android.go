@@ -132,8 +132,7 @@ func drainFPS() (sh *exec.Cmd, pipe chan float64, err error) {
 	var lastframe = 0
 	var lasttime = time.Now()
 	stdout := bytes.NewBuffer(nil)
-	//sh := exec.Command("su", "-c", "/system/bin/sh")
-	sh = exec.Command("su")
+	sh = exec.Command("su") // exec.Command("su", "-c", "/system/bin/sh")
 	stdin, _ := sh.StdinPipe()
 	sh.Stdout = stdout
 	sh.Stderr = stdout

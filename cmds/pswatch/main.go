@@ -27,15 +27,19 @@ type Data struct {
 }
 
 type CollectFunc func() (*Data, error)
+type CollectUnit struct {
+	Func     CollectFunc
+	Duration time.Duration
+}
 
 var (
 	outC         = make(chan *Data, 5)
-	collectFuncs = []CollectFunc{}
+	collectFuncs = map[string]CollectUnit{} //CollectFunc]time.Duration{} //[]CollectFunc{}
 )
 
 func drainData() {
-	for _, collect := range collectFuncs {
-		goCronCollect(collect, time.Second, outC)
+	for _, cu := range collectFuncs {
+		goCronCollect(cu.Func, cu.Duration, outC)
 	}
 }
 
@@ -74,6 +78,7 @@ var (
 	showInfo = flag.Bool("i", false, "Show mathine infomation")
 	showFPS  = flag.Bool("fps", false, "Show fps of android")
 	version  = flag.Bool("v", false, "Show version")
+	duration = flag.Duration("d", time.Second, "Collect interval")
 )
 
 func showVersion() error {
@@ -120,10 +125,13 @@ func main() {
 			log.Fatal("Find more then one process matched, This is a bug, maybe")
 		}
 		proc = procs[0]
-		collectFuncs = append(collectFuncs,
-			NewProcCollectCPU(proc),
-			NewProcCollectTraffic(proc))
+		collectFuncs["proc_cpu"] = CollectUnit{NewProcCollectCPU(proc), *duration}
+		collectFuncs["proc_net"] = CollectUnit{NewProcCollectTraffic(proc), *duration}
+		collectFuncs["proc_mem"] = CollectUnit{NewProcCollectMemory(proc), *duration}
 	}
+	collectFuncs["sys_cpu"] = CollectUnit{collectCPU, *duration}
+	collectFuncs["sys_mem"] = CollectUnit{collectMem, *duration}
+	collectFuncs["battery"] = CollectUnit{collectBattery, *duration}
 
 	drainData()
 	for data := range outC {

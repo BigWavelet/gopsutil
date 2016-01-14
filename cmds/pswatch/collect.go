@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/codeskyblue/gopsutil/cpu"
 	"github.com/codeskyblue/gopsutil/mem"
@@ -9,12 +10,14 @@ import (
 	humanize "github.com/dustin/go-humanize"
 )
 
-func init() {
-	collectFuncs = append(collectFuncs,
-		collectCPU, collectMem, collectBattery)
-}
+var firstCpu = true
 
 func collectCPU() (*Data, error) {
+	if firstCpu {
+		time.Sleep(500 * time.Millisecond)
+		firstCpu = false
+	}
+
 	v, err := cpu.CPUPercent(0, false)
 	if err != nil {
 		return nil, err
@@ -135,6 +138,19 @@ func NewProcCollectTraffic(proc *process.Process) CollectFunc {
 				"recv": rcv,
 				"send": snd,
 			},
+		}, nil
+	}
+}
+
+func NewProcCollectMemory(proc *process.Process) CollectFunc {
+	return func() (*Data, error) {
+		mm, err := ProcessMemory(proc)
+		if err != nil {
+			return nil, err
+		}
+		return &Data{
+			Name: fmt.Sprintf("proc:%d:memory", proc.Pid),
+			Data: mm,
 		}, nil
 	}
 }
