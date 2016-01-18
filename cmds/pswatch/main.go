@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
@@ -15,57 +14,6 @@ import (
 
 	"github.com/codeskyblue/gopsutil/process"
 )
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
-
-type Data struct {
-	Time int64       `json:"time"`
-	Name string      `json:"name"`
-	Data interface{} `json:"data"`
-}
-
-type CollectFunc func() (*Data, error)
-type CollectUnit struct {
-	Func     CollectFunc
-	Duration time.Duration
-}
-
-var (
-	outC         = make(chan *Data, 5)
-	collectFuncs = map[string]CollectUnit{} //CollectFunc]time.Duration{} //[]CollectFunc{}
-)
-
-func drainData() {
-	for _, cu := range collectFuncs {
-		goCronCollect(cu.Func, cu.Duration, outC)
-	}
-}
-
-func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) chan bool {
-	done := make(chan bool, 0)
-	go func() {
-		for {
-			start := time.Now()
-			data, err := collec()
-			if err == nil {
-				outC <- data
-			} else {
-				outC <- &Data{
-					Name: "error",
-					Data: err.Error(),
-				}
-			}
-			spend := time.Since(start)
-			if interval > spend {
-				time.Sleep(interval - spend)
-			}
-		}
-		done <- true
-	}()
-	return done
-}
 
 var (
 	VERSION    = "0.0.x"
@@ -79,6 +27,8 @@ var (
 	showFPS  = flag.Bool("fps", false, "Show fps of android")
 	version  = flag.Bool("v", false, "Show version")
 	duration = flag.Duration("d", time.Second, "Collect interval")
+	listen   = flag.Bool("l", false, "Listen http request data")
+	port     = flag.Int("port", 16118, "Listen port") // because this day is 2016-01-18
 )
 
 func showVersion() error {
@@ -112,6 +62,10 @@ func main() {
 		go drainAndroidFPS(outC)
 	}
 
+	if *listen {
+		go serveHTTP(*port) // open a server for app to send data
+	}
+
 	var proc *process.Process
 	if *search != "" {
 		procs, err := FindProcess(*search)
@@ -133,7 +87,7 @@ func main() {
 	collectFuncs["sys_mem"] = CollectUnit{collectMem, *duration}
 	collectFuncs["battery"] = CollectUnit{collectBattery, *duration}
 
-	drainData()
+	drainData(collectFuncs)
 	for data := range outC {
 		data.Time = time.Now().UnixNano() / 1e6 // milliseconds
 		dataByte, _ := json.Marshal(data)

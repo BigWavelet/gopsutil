@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/codeskyblue/gopsutil/cpu"
@@ -10,7 +13,53 @@ import (
 	humanize "github.com/dustin/go-humanize"
 )
 
-var firstCpu = true
+type Data struct {
+	Time int64       `json:"time"`
+	Name string      `json:"name"`
+	Data interface{} `json:"data"`
+}
+
+type CollectFunc func() (*Data, error)
+type CollectUnit struct {
+	Func     CollectFunc
+	Duration time.Duration
+}
+
+var (
+	firstCpu     = true
+	outC         = make(chan *Data, 5)
+	collectFuncs = map[string]CollectUnit{} //CollectFunc]time.Duration{} //[]CollectFunc{}
+)
+
+func drainData(collects map[string]CollectUnit) {
+	for _, cu := range collects {
+		goCronCollect(cu.Func, cu.Duration, outC)
+	}
+}
+
+func goCronCollect(collec CollectFunc, interval time.Duration, outC chan *Data) chan bool {
+	done := make(chan bool, 0)
+	go func() {
+		for {
+			start := time.Now()
+			data, err := collec()
+			if err == nil {
+				outC <- data
+			} else {
+				outC <- &Data{
+					Name: "error",
+					Data: err.Error(),
+				}
+			}
+			spend := time.Since(start)
+			if interval > spend {
+				time.Sleep(interval - spend)
+			}
+		}
+		done <- true
+	}()
+	return done
+}
 
 func collectCPU() (*Data, error) {
 	if firstCpu {
@@ -173,4 +222,34 @@ func drainAndroidFPS(outC chan *Data) error {
 		}
 	}
 	return nil
+}
+
+func serveHTTP(port int) error {
+	http.HandleFunc("/api/v1/perf", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Only POST Method is allowed", http.StatusForbidden)
+			return
+		}
+		name := r.FormValue("name")
+		value := r.FormValue("data")
+		var v float64
+		var data *Data
+		if _, err := fmt.Sscanf(value, "%f", &v); err != nil {
+			data = &Data{
+				Name: "error",
+				Data: fmt.Sprintf("http /api/v1/perf read not float data, name: %s, val: %s",
+					name, value),
+			}
+		} else {
+			data = &Data{
+				Name: name,
+				Data: v,
+			}
+		}
+		outC <- data
+		w.Header().Set("Content-Type", "application/json")
+		jsonData, _ := json.Marshal(data)
+		w.Write(jsonData)
+	})
+	return http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }
