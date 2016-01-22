@@ -61,11 +61,18 @@ func DumpAndroidInfo() {
 	fmt.Println(string(data))
 }
 
-// check if root
+// check if android rooted
 func IsAndroidRoot() bool {
-	for _, searchDir := range []string{"/system/bin/", "/system/xbin/", "/system/sbin/", "/sbin/", "/vendor/bin/"} {
-		if fileExists(filepath.Join(searchDir, "su")) {
-			return true
+	paths := strings.Split(os.Getenv("PATH"), ":")
+	paths = append(paths, "/system/bin/", "/system/xbin/", "/system/sbin/", "/sbin/", "/vendor/bin/")
+	for _, searchDir := range UniqSlice(paths) {
+		suPath := filepath.Join(searchDir, "su")
+		suStat, err := os.Lstat(suPath)
+		if err == nil && suStat.Mode().IsRegular() {
+			// check if setuid is set
+			if suStat.Mode()&os.ModeSetuid == os.ModeSetuid {
+				return true
+			}
 		}
 	}
 	return false
