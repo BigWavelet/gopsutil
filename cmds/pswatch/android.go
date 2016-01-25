@@ -5,16 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/codeskyblue/gopsutil/android"
 	"github.com/codeskyblue/gopsutil/cpu"
 )
 
@@ -53,29 +51,12 @@ func DumpAndroidInfo() {
 	di := &DeviceInfo{
 		Serial:  serial,
 		NumCPU:  cpu.CPUCount,
-		Root:    IsAndroidRoot(),
+		Root:    android.IsRoot(),
 		Sdk:     sdk,
 		Version: ver,
 	}
 	data, _ := json.MarshalIndent(di, "", "    ")
 	fmt.Println(string(data))
-}
-
-// check if android rooted
-func IsAndroidRoot() bool {
-	paths := strings.Split(os.Getenv("PATH"), ":")
-	paths = append(paths, "/system/bin/", "/system/xbin/", "/system/sbin/", "/sbin/", "/vendor/bin/")
-	for _, searchDir := range UniqSlice(paths) {
-		suPath := filepath.Join(searchDir, "su")
-		suStat, err := os.Lstat(suPath)
-		if err == nil && suStat.Mode().IsRegular() {
-			// check if setuid is set
-			if suStat.Mode()&os.ModeSetuid == os.ModeSetuid {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // android sdk verion
@@ -86,43 +67,22 @@ func AndroidSdkVersion() (ver int, err error) {
 	return
 }
 
-func readUint64FromFile(filename string) (uint64, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return 0, err
-	}
-	return strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
-}
-
 // ref
-// traffix for android: http://keepcleargas.bitbucket.org/2013/10/12/android-App-Traffic.html
 // get uid from /proc/<pid>/status http://www.linuxquestions.org/questions/linux-enterprise-47/uid-and-gid-fileds-from-proc-pid-status-595383/
 func ReadTrafix(uid int32) (rcv, snd uint64, err error) {
-	tcpRecv := fmt.Sprintf("/proc/uid_stat/%d/tcp_rcv", uid)
-	tcpSend := fmt.Sprintf("/proc/uid_stat/%d/tcp_snd", uid)
-	rcv, err = readUint64FromFile(tcpRecv)
+	nss, err := android.NetworkStats()
 	if err != nil {
 		return
 	}
-	snd, err = readUint64FromFile(tcpSend)
+	for _, ns := range nss {
+		if ns.Uid != int(uid) {
+			continue
+		}
+		rcv += ns.RecvBytes
+		snd += ns.SendBytes
+	}
 	return
 }
-
-/*
-func AndroidScreenSize() (width int, height int, err error) {
-	out, err := exec.Command("dumpsys", "window").Output()
-	if err != nil {
-		return
-	}
-	rsRE := regexp.MustCompile(`\s*mRestrictedScreen=\(\d+,\d+\) (?P<w>\d+)x(?P<h>\d+)`)
-	matches := rsRE.FindStringSubmatch(string(out))
-	if len(matches) == 0 {
-		err = errors.New("get shape(width,height) from device error")
-		return
-	}
-	return atoi(matches[1]), atoi(matches[2]), nil
-}
-*/
 
 var patten = regexp.MustCompile(`\(([a-fA-F0-9]+)\ `)
 
