@@ -14,7 +14,7 @@ type MemoryStat struct {
 	VSS uint64 `json:"vss"`
 	RSS uint64 `json:"rss"`
 	PSS uint64 `json:"pss"`
-	USS uint64 `json:"uss"`
+	USS uint64 `json:"-"`
 }
 
 func isRootUser() bool {
@@ -22,6 +22,9 @@ func isRootUser() bool {
 }
 
 func ProcessMemory(proc *process.Process) (ms *MemoryStat, err error) {
+	return StupidGetMemory(proc)
+
+	// Not working in some machines
 	if !isRootUser() {
 		return StupidGetMemory(proc)
 	}

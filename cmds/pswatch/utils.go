@@ -2,6 +2,8 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -24,4 +26,26 @@ func readUint64FromFile(filename string) (uint64, error) {
 		return 0, err
 	}
 	return strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
+}
+
+func shellEscape(cmds []string) string {
+	qcmds := make([]string, 0, len(cmds))
+	for _, command := range cmds {
+		qcmds = append(qcmds, strconv.Quote(command))
+	}
+	return strings.Join(qcmds, " ")
+}
+
+func rootRun(cmds ...string) error {
+	sh := exec.Command("su")
+	stdin, _ := sh.StdinPipe()
+	sh.Stdout = os.Stdout
+	sh.Stderr = os.Stderr
+	if err := sh.Start(); err != nil {
+		return err
+	}
+
+	shcmd := shellEscape(cmds) + "; exit $?\n"
+	stdin.Write([]byte(shcmd))
+	return sh.Wait()
 }

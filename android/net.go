@@ -37,6 +37,7 @@ type NetStat struct {
 }
 
 // http://stackoverflow.com/questions/15163549/interpreting-android-xt-qtaguid-stats
+// here RecvBytes include tcp header
 func NetworkStats() (nss []NetStat, err error) {
 	fd, err := os.Open(PROC_NET_STATS)
 	if err != nil {

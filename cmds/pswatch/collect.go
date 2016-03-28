@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/codeskyblue/gopsutil/android"
 	"github.com/codeskyblue/gopsutil/cpu"
 	"github.com/codeskyblue/gopsutil/mem"
 	"github.com/codeskyblue/gopsutil/process"
@@ -109,6 +110,17 @@ func collectBattery() (*Data, error) {
 			"temperature":  bt.Temperature,
 			"powerPercent": bt.Level * 100 / bt.Scale,
 		},
+	}, nil
+}
+
+func collectFPS() (*Data, error) {
+	fps, err := android.FPS()
+	if err != nil {
+		return nil, err
+	}
+	return &Data{
+		Name: "fps",
+		Data: fps,
 	}, nil
 }
 

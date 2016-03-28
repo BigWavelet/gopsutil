@@ -74,10 +74,14 @@ func ReadTrafix(uid int32) (rcv, snd uint64, err error) {
 	if err != nil {
 		return
 	}
+	rcv = 0
+	snd = 0
 	for _, ns := range nss {
 		if ns.Uid != int(uid) {
 			continue
 		}
+		//rcv += ns.RecvTcpBytes - 64*ns.RecvTcpPackets
+		//snd += ns.SendTcpBytes - 64*ns.SendTcpPackets
 		rcv += ns.RecvBytes
 		snd += ns.SendBytes
 	}

@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/md5"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alecthomas/kingpin"
+	"github.com/codeskyblue/gopsutil/android"
 	"github.com/codeskyblue/gopsutil/process"
 )
 
@@ -21,14 +22,22 @@ var (
 )
 
 var (
-	search = flag.String("p", "",
-		"Search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
-	showInfo = flag.Bool("i", false, "Show mathine infomation")
-	showFPS  = flag.Bool("fps", false, "Show fps of android")
-	version  = flag.Bool("v", false, "Show version")
-	duration = flag.Duration("d", time.Second, "Collect interval")
-	listen   = flag.Bool("l", false, "Listen http request data")
-	port     = flag.Int("port", 16118, "Listen port") // because this day is 2016-01-18
+	search   = kingpin.Flag("proc", "Find process, support ex: pid:71, exe:/bin/ls, cmdline:./ps").Short('p').String()
+	showInfo = kingpin.Flag("info", "Show phone info and exit").Short('i').Bool()
+	showFPS  = kingpin.Flag("fps", "Show fps in android").Bool()
+	version  = kingpin.Flag("version", "Show version").Short('v').Bool()
+	duration = kingpin.Flag("duration", "Collection interval").Short('d').Default("1s").Duration()
+	listen   = kingpin.Flag("listen", "Listen http request").Short('l').Bool()
+	port     = kingpin.Flag("port", "Listen port").Default("16118").Int()
+	test     = kingpin.Flag("test", "Run test program, only for develop").Bool()
+	//search = flag.String("p", "",
+	//	"Search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
+	//showInfo = flag.Bool("i", false, "Show mathine infomation")
+	//showFPS  = flag.Bool("fps", false, "Show fps of android")
+	//version  = flag.Bool("v", false, "Show version")
+	//duration = flag.Duration("d", time.Second, "Collect interval")
+	//listen   = flag.Bool("l", false, "Listen http request data")
+	//port     = flag.Int("port", 16118, "Listen port") // because this day is 2016-01-18
 )
 
 func showVersion() error {
@@ -46,7 +55,8 @@ func showVersion() error {
 }
 
 func main() {
-	flag.Parse()
+	kingpin.CommandLine.HelpFlag.Short('h')
+	kingpin.Parse()
 
 	if *version {
 		showVersion()
@@ -58,12 +68,28 @@ func main() {
 		return
 	}
 
-	if *showFPS {
-		go drainAndroidFPS(outC)
+	if *showFPS && os.Getuid() != 0 {
+		if err := rootRun(os.Args...); err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
+
+	if *showFPS && os.Getuid() == 0 {
+		collectFuncs["fps"] = CollectUnit{collectFPS, 500 * time.Millisecond}
+	}
+
+	//if *showFPS {
+	//go drainAndroidFPS(outC)
+	//}
 
 	if *listen {
 		go serveHTTP(*port) // open a server for app to send data
+	}
+
+	if *test {
+		log.Println(android.FPS())
+		return
 	}
 
 	var proc *process.Process
