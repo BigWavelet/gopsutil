@@ -15,10 +15,12 @@ func IsRoot() bool {
 		suPath := filepath.Join(searchDir, "su")
 		suStat, err := os.Lstat(suPath)
 		if err == nil && suStat.Mode().IsRegular() {
+			return true
 			// check if setuid is set
-			if suStat.Mode()&os.ModeSetuid == os.ModeSetuid {
-				return true
-			}
+			//log.Println(suPath, suStat.Mode(), (os.ModeExclusive | os.ModeSetuid))
+			//if suStat.Mode()&(os.ModeExclusive|os.ModeSetuid) != 0 {
+			//return true
+			//}
 		}
 	}
 	return false

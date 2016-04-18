@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -263,5 +264,9 @@ func serveHTTP(port int) error {
 		jsonData, _ := json.Marshal(data)
 		w.Write(jsonData)
 	})
+	http.HandleFunc("/api/quit", func(w http.ResponseWriter, r *http.Request) {
+		os.Exit(0)
+	})
+
 	return http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }

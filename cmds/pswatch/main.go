@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"runtime"
 	"strconv"
@@ -30,6 +31,7 @@ var (
 	listen   = kingpin.Flag("listen", "Listen http request").Short('l').Bool()
 	port     = kingpin.Flag("port", "Listen port").Default("16118").Int()
 	test     = kingpin.Flag("test", "Run test program, only for develop").Bool()
+	quit     = kingpin.Flag("quit", "Quit running program").Bool()
 	//search = flag.String("p", "",
 	//	"Search process, support ex: pid:71, exe:/usr/bin/ls, cmdline:./ps")
 	//showInfo = flag.Bool("i", false, "Show mathine infomation")
@@ -65,6 +67,11 @@ func main() {
 
 	if *showInfo {
 		DumpAndroidInfo()
+		return
+	}
+
+	if *quit {
+		http.Get(fmt.Sprintf("http://localhost:%d/api/quit", *port))
 		return
 	}
 
