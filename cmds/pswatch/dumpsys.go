@@ -70,8 +70,17 @@ func (self *Battery) Update() error {
 	//log.Println(string(out))
 	patten := regexp.MustCompile(`(\w+[\w ]*\w+):\s*([-\w\d]+)(\r|\n)`)
 	ms := patten.FindAllStringSubmatch(string(out), -1)
+	exists := make(map[string]bool)
 	for _, fields := range ms {
 		var key, val = fields[1], fields[2]
+
+		// filter duplicate items.
+		// will happen on phone: 红米Note3
+		if exists[key] {
+			continue
+		}
+		exists[key] = true
+
 		switch key {
 		case "AC powered":
 			self.ACPowered = parseBool(val)
